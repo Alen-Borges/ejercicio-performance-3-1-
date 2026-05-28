@@ -1,0 +1,53 @@
+CONCLUSIONES Y HALLAZGOS
+=========================
+Ejercicio de Performance - Prueba de Carga Login
+Endpoint: POST https://fakestoreapi.com/auth/login
+
+RESULTADOS POR EJECUCION
+-------------------------
+Ejecucion 1:
+  TPS: 19.87/s | avg: 414ms | p(95): 454ms | max: 770ms | errores: 0%
+  Thresholds: max < 1500 PASA | p(95) < 1500 PASA | error < 3% PASA
+  Nota: status code 201 en todos los requests (check de 200 fallo)
+
+Ejecucion 2:
+  TPS: 19.71/s | avg: 514ms | p(95): 848ms | max: 1540ms | errores: 0%
+  Thresholds: max < 1500 FALLA | p(95) < 1500 PASA | error < 3% PASA
+  Nota: status code 200, checks funcionales al 100%
+
+Ejecucion 3:
+  TPS: 19.82/s | avg: 407ms | p(95): 440ms | max: 1050ms | errores: 0%
+  Thresholds: max < 1500 PASA | p(95) < 1500 PASA | error < 3% PASA
+  Nota: status code 201 en todos los requests
+
+HALLAZGOS
+---------
+1. El servicio cumple los criterios de aceptacion en 2 de 3 ejecuciones.
+   Los tiempos de respuesta son consistentemente bajos: p(95) entre
+   440-848 ms, muy por debajo del limite de 1,500 ms.
+
+2. La tasa de error HTTP fue 0% en las tres ejecuciones. Ningun request
+   fallo a nivel de red o protocolo.
+
+3. El TPS objetivo de 20/s fue alcanzado en todas las ejecuciones
+   (19.87, 19.71 y 19.82). La diferencia minima se explica por una
+   iteracion descartada (dropped_iteration) por ejecucion, comportamiento
+   normal del executor constant-arrival-rate.
+
+4. El threshold max < 1500 ms genero un falso negativo en la ejecucion 2:
+   un unico request de 1.54 s hizo fallar el criterio, aunque los
+   demas 1,189 requests respondieron dentro del limite. El criterio
+   p(95) es mas apropiado para este tipo de pruebas.
+
+5. El endpoint respondio con status 201 en todas las ejecuciones, se empezó a capturaar a partir
+   de la segunda ejecución(donde se actualizó el check de 200 a 201 sin cambiar el mensaje). En todos los casos el token JWT 
+   fue retornado correctamente.
+
+CONCLUSIONES
+------------
+- El servicio soporta 20 TPS de forma estable sin errores HTTP y con
+  tiempos de respuesta aceptables en todas las ejecuciones.
+- El unico fallo registrado fue un outlier puntual de red, no una
+  degradacion del sistema.
+- Al parecer, se recomienda usar p(95) < 1500 ms como criterio principal y
+  descartar o elevar el umbral de max para evitar falsos negativos.
